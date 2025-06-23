@@ -1,0 +1,9 @@
+/Users/emilemilovroydev/Rust/projects/Solana/solana-anchor-debuggen/target/debug/deps/libsolana_borsh-1169e552d9a61e92.rmeta: /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/solana-borsh-2.2.1/src/lib.rs /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/solana-borsh-2.2.1/src/deprecated.rs /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/solana-borsh-2.2.1/src/macros.rs /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/solana-borsh-2.2.1/src/v0_10.rs /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/solana-borsh-2.2.1/src/v1.rs
+
+/Users/emilemilovroydev/Rust/projects/Solana/solana-anchor-debuggen/target/debug/deps/solana_borsh-1169e552d9a61e92.d: /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/solana-borsh-2.2.1/src/lib.rs /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/solana-borsh-2.2.1/src/deprecated.rs /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/solana-borsh-2.2.1/src/macros.rs /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/solana-borsh-2.2.1/src/v0_10.rs /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/solana-borsh-2.2.1/src/v1.rs
+
+/Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/solana-borsh-2.2.1/src/lib.rs:
+/Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/solana-borsh-2.2.1/src/deprecated.rs:
+/Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/solana-borsh-2.2.1/src/macros.rs:
+/Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/solana-borsh-2.2.1/src/v0_10.rs:
+/Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/solana-borsh-2.2.1/src/v1.rs:

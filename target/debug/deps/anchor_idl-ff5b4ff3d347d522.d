@@ -1,0 +1,14 @@
+/Users/emilemilovroydev/Rust/projects/Solana/solana-anchor-debuggen/target/debug/deps/libanchor_idl-ff5b4ff3d347d522.rmeta: /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/lib.rs /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/account.rs /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/event.rs /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/fields.rs /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/instruction.rs /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/program.rs /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/state.rs /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/typedef.rs
+
+/Users/emilemilovroydev/Rust/projects/Solana/solana-anchor-debuggen/target/debug/deps/anchor_idl-ff5b4ff3d347d522.d: /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/lib.rs /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/account.rs /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/event.rs /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/fields.rs /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/instruction.rs /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/program.rs /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/state.rs /Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/typedef.rs
+
+/Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/lib.rs:
+/Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/account.rs:
+/Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/event.rs:
+/Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/fields.rs:
+/Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/instruction.rs:
+/Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/program.rs:
+/Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/state.rs:
+/Users/emilemilovroydev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anchor-idl-0.4.1/src/typedef.rs:
+
+# env-dep:CARGO_PKG_VERSION=0.4.1
