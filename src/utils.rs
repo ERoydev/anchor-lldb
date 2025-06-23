@@ -1,24 +1,4 @@
-
-// pub fn generate_toml_file() {
-//     const cargo_toml = format!(
-//         r#"[package]
-// name = "{debug_crate_name}"
-// version = "0.1.0"
-// edition = "2021"
-
-// [dependencies]
-// {crate_name} = {{ path = "{crate_path}" }}
-// anchor-lang = "0.31.1"
-// "#,
-//         debug_crate_name = debug_crate_name,
-//         crate_name = crate_name,
-//         crate_path = crate_path
-//     );
-
-//     cargo_toml
-// }
-
-use std::fs;
+use std::{fs, path::Path};
 
 use anchor_idl::{Idl, IdlInstructionAccount, IdlInstructionAccountItem};
 
@@ -62,5 +42,32 @@ pub fn visit_account_item(item: &IdlInstructionAccountItem) -> Option<&IdlInstru
             }
             None
         }
+    }
+}
+
+use serde::Deserialize;
+
+#[derive(Debug, Deserialize)]
+struct CargoToml {
+    package: Package,
+}
+
+#[derive(Debug, Deserialize)]
+struct Package {
+    name: String,
+}
+
+pub fn read_package_name(path: &Path) -> Result<String, Box<dyn std::error::Error>> {
+    let toml_content = fs::read_to_string(path)?;
+    let cargo_toml: CargoToml = toml::from_str(&toml_content)?;
+    Ok(cargo_toml.package.name)
+}
+
+// TODO: This can lead to bugs because Account name can be ShipmentIdCounter and this will result in Shipmentidcounter
+pub fn capitalize_first_letter(s: &str) -> String {
+    let mut c = s.chars();
+    match c.next() {
+        None => String::new(),
+        Some(first) => first.to_uppercase().collect::<String>() + c.as_str(),
     }
 }

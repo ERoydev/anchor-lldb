@@ -1,9 +1,11 @@
+
+use anchor_lang::prelude::*;
+use shipment_manager::{ ID as PROGRAM_ID};
+use anchor_lang::Discriminator;
+
 /*
     This will be generated as a static mock code used to generate the common contexts
 */
-
-use anchor_lang::prelude::*;
-use {crate_name}::{{AccountInfo, ID as PROGRAM_ID}};
 
 pub fn mock_pubkey(label: &str) -> Pubkey {
     let mut bytes = [0u8; 32];
@@ -34,7 +36,7 @@ pub fn mock_signer_account(label: &str) -> AccountInfo<'static> {
 }
 
 /// Mocks a PDA AccountInfo with some dummy data
-pub fn mock_pda_account(seeds: &[&[u8]], program_id: &Pubkey, size: usize) -> AccountInfo<'static> {
+pub fn mock_pda_account<T: Discriminator>(seeds: &[&[u8]], program_id: &Pubkey, size: usize) -> AccountInfo<'static> {
     let (pda, _bump) = Pubkey::find_program_address(seeds, program_id);
     let pda = Box::leak(Box::new(pda));
 
@@ -42,7 +44,7 @@ pub fn mock_pda_account(seeds: &[&[u8]], program_id: &Pubkey, size: usize) -> Ac
 
     // Anchor expects the first 8 bytes of the account data to be a unique discriminator for the account type
     let mut data = [0u8; 64];
-    let discriminator = <ShipmentIdCounter as anchor_lang::Discriminator>::DISCRIMINATOR;
+    let discriminator = T::DISCRIMINATOR;
     data[..8].copy_from_slice(&discriminator);
     let data = Box::leak(Box::new(data)); 
 

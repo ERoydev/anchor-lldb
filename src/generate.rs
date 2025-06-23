@@ -1,19 +1,18 @@
 use std::env;
-use std::fmt::format;
 use std::fs::{self, File};
 use std::io::{Write};
 use std::path::Path;
 
-use anchor_idl::{Idl, IdlInstruction, IdlInstructionAccount, IdlInstructionAccountItem, IdlType};
+use anchor_idl::{Idl, IdlInstruction, IdlInstructionAccount, IdlSeed, IdlType};
 
-use crate::utils::{to_camel_case, visit_account_item};
+use crate::utils::{capitalize_first_letter, read_package_name, to_camel_case, visit_account_item};
 
 /*
 
 Command to generate that project:
     cargo run -- generate \
-    --idl /Users/emilemilovroydev/Rust/projects/Solana/shipment-manager/target/idl/shipment_manager.json \
-    --program-crate-path /Users/emilemilovroydev/Rust/projects/Solana/shipment-manager --out /Users/emilemilovroydev/Rust/projects/Solana/shipment-manager/debug-wrapper
+    --idl /Users/emilemilovroydev/Rust/projects/Solana/shipment-managment/target/idl/shipment_manager.json \
+    --program-crate-path /Users/emilemilovroydev/Rust/projects/Solana/shipment-managment --out /Users/emilemilovroydev/Rust/projects/Solana/shipment-managment/debug-wrapper
 */
 
 pub fn generate_wrapper(
@@ -39,20 +38,6 @@ pub fn generate_wrapper(
         call_main.push_str(&call);
         let func = generate_instruction_function(instruction, &program_name);
 
-    //     let func = format!(
-    //         r#"
-    // fn {func_name}() {{
-    //     println!("Calling {original}...");
-    //     // TODO: Mock accounts and context
-    //     // let ctx = ...;
-    //     // {crate}::program::{crate}::{original}(ctx).unwrap();
-    // }}
-    // "#,
-    //         func_name = func_name,
-    //         original = instruction.name,
-    //         crate = crate_name
-    //     );
-
         call_functions.push_str(&func);
     }
 
@@ -60,6 +45,10 @@ pub fn generate_wrapper(
     let src_dir = out_dir.join("src");
 
     fs::create_dir_all(&src_dir)?;
+
+    let program_path = Path::new(crate_path).join("programs/shipment-managment");
+    let toml_path = program_path.join("Cargo.toml"); // TODO: Make this path dynamically
+    let package_name = read_package_name(&toml_path).expect("Failed to read package name");
 
     // === Write Cargo.toml ===
     let cargo_toml = format!(
@@ -69,11 +58,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-{crate_name} = {{ path = "{crate_path}" }}
+{crate_name} = {{ path = "{program_path}", package = "{package_name}" }}
 anchor-lang = "0.31.1"
 "#,
 crate_name = crate_name,
-crate_path = crate_path
+program_path = program_path.to_str().expect("Failed to get program path")
     );
 
     fs::write(out_dir.join("Cargo.toml"), cargo_toml)?;
@@ -101,8 +90,14 @@ use {crate_name}::{{ID as PROGRAM_ID}};
 
     let main_rs_contents = format!(
         r#"use anchor_lang::prelude::*;
-use {crate_name}::program::{crate_name}::*;
-use {crate_name}::{{ID as PROGRAM_ID}};
+
+extern crate {crate_name} as cr;
+use cr::ID as PROGRAM_ID;
+use cr::*;
+use cr::{crate_name}::*;
+
+mod mock;
+use mock::*;
 
     fn main() {{
         println!("Native debug wrapper for Anchor program: '{crate_name}'");
@@ -139,28 +134,38 @@ pub fn generate_instruction_function(ix: &IdlInstruction, program_name: &str) ->
         let account: &IdlInstructionAccount = visit_account_item(acc).expect("Failed te retreive accounts");
         let acc_name: &String = &account.name;
 
-        let mock_call: String = if acc_name.to_lowercase() == "systemprogram" {
-            format!(r#"Box::leak(Box::new(mock_system_program()));"#)
+        let acc_struct_name = capitalize_first_letter(&acc_name);
+
+        let mock_call: String = if acc_name.to_lowercase() == "system_program" {
+            format!(r#"Box::leak(Box::new(mock_system_program()))"#)
         } else if account.signer {
-            format!(r#"Box::leak(Box::new(mock_signer_account("{acc_name}")));"#)
+            format!(r#"Box::leak(Box::new(mock_signer_account("{acc_name}")))"#)
         } else {
             // TODO: Generation of PDA should be handled better than this !
             format!(
-                r#"Box::leak(Box::new(mock_pda_account(&[b"{acc_name}"], &PROGRAM_ID, 64)));"#
+                r#"Box::leak(Box::new(mock_pda_account::<{acc_struct_name}>(&[b"{acc_name}"], &PROGRAM_ID, 64)))"#
             )
         };
 
         bindings.push(format!("let {acc_name} = {mock_call};"));
+        let account_type =  if account.signer {
+            "Signer"
+        } else if acc_name.to_lowercase() == "system_program" {
+            "Program"
+        } else {
+            "Account"
+        };
+
+        let prefix = if acc_name.to_lowercase() == "system_program" {
+            "&*"
+        } else {
+            ""
+        };
+
         fields.push(format!(
-            r#"{acc_name}: {}::try_from({acc_name}).unwrap()"#,
-            if account.signer {
-                "Signer"
-            } else if acc_name.to_lowercase() == "systemprogram" {
-                "Program"
-            } else {
-                "Account"
-            }
+            r#"{acc_name}: {account_type}::try_from({prefix}{acc_name}).unwrap()"#
         ));
+
         accounts_info_clones.push(format!("{acc_name}.clone()"));
     }
 
@@ -184,6 +189,37 @@ pub fn generate_instruction_function(ix: &IdlInstruction, program_name: &str) ->
         call_args.push(arg_name.to_string());
     }
 
+    let mut bump_fields = vec![];
+
+    for acc in &ix.accounts {
+        let account: &IdlInstructionAccount = visit_account_item(acc).unwrap();
+        let acc_name = &account.name;
+
+        if let Some(pda) = &account.pda {
+            // Create a list of bytes for find_program_address
+            let mut seed_exprs = vec![];
+
+            for seed in &pda.seeds {
+                match seed {
+                    IdlSeed::Const(seed_const) => {
+                        seed_exprs.push(format!("&{:?}", seed_const.value));
+                    },
+                    IdlSeed::Arg(seed_arg) => {
+                        seed_exprs.push(format!("&{}::to_le_bytes()", seed_arg.path));
+                    },
+                    IdlSeed::Account(seed_account) => {
+                        seed_exprs.push(format!("{}.key().as_ref()", seed_account.path));
+                    }
+                }
+            }
+
+            let seed_refs = seed_exprs.join(", ");
+            bump_fields.push(format!(
+                "{acc_name}: Pubkey::find_program_address(&[{seed_refs}], &PROGRAM_ID).1"
+            ));
+        }
+    }
+
     // === Compose final Rust code ===
     format!(
         r#"
@@ -197,7 +233,9 @@ fn {function_name}() {{
     }};
 
     let account_infos = vec![{accounts_info_clones}];
-    let bumps = {bump_struct} {{ /* TODO: fill bump values */ }};
+    let bumps = {bump_struct} {{ 
+        {bump_fields}
+    }};
 
     let ctx = Context::new(
         &PROGRAM_ID,
@@ -217,10 +255,11 @@ fn {function_name}() {{
         function_name = function_name,
         ix_name = ix_name,
         bindings = bindings.join("\n    "),
-        fields = fields.join("\n    "),
+        fields = fields.join(",\n       "),
         accounts_info_clones = accounts_info_clones.join(", "),
         args = args.join("\n    "),
-        call_args = call_args.join(", ")
+        call_args = call_args.join(", "),
+        bump_fields = bump_fields.join(",\n     "),
     )
 
 }
