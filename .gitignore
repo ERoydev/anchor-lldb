@@ -1,0 +1,28 @@
+# Rust build output
+/target/
+
+# Executable binaries
+**/*.exe
+**/*.bin
+**/*.dSYM
+
+# Cargo local config
+Cargo.lock
+.cargo/
+
+# Environment variables and secrets
+.env
+.env.*
+
+# Editor configs and OS-specific files
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+*.bak
+*.tmp
+*.log
+
+# Rust Analyzer
+rust-project.json
