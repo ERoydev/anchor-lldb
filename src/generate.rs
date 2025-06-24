@@ -13,12 +13,19 @@ Command to generate that project:
     cargo run -- generate \
     --idl /Users/emilemilovroydev/Rust/projects/Solana/shipment-managment/target/idl/shipment_manager.json \
     --program-crate-path /Users/emilemilovroydev/Rust/projects/Solana/shipment-managment --out /Users/emilemilovroydev/Rust/projects/Solana/shipment-managment/debug-wrapper
+
+
+    Usage using the extension be like 
+        - cargo run install --path . => TO install globbally this CLI tool
+
+        - anchor-lldb generate --package={packageName}
 */
 
 pub fn generate_wrapper(
     idl_path: &str,
     crate_path: &str,
     out_path: &str,
+    package: &str
 ) -> Result<(), Box<dyn std::error::Error>> {
     // let idl = load_idl(idl_path).unwrap();
 
@@ -47,8 +54,7 @@ pub fn generate_wrapper(
     fs::create_dir_all(&src_dir)?;
 
     let program_path = Path::new(crate_path).join("programs/shipment-managment");
-    let toml_path = program_path.join("Cargo.toml"); // TODO: Make this path dynamically
-    let package_name = read_package_name(&toml_path).expect("Failed to read package name");
+    let package_name = package;
 
     // === Write Cargo.toml ===
     let cargo_toml = format!(
@@ -73,6 +79,7 @@ program_path = program_path.to_str().expect("Failed to get program path")
     
     let template_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/templates/mock_template.rs");
     let mut template = fs::read_to_string(template_path).expect("Failed to read a string");
+
     template = template.replace("{crate_name}", &crate_name);
 
     let mock_rs_contents = format!(
@@ -208,7 +215,8 @@ pub fn generate_instruction_function(ix: &IdlInstruction, program_name: &str) ->
                         seed_exprs.push(format!("&{}::to_le_bytes()", seed_arg.path));
                     },
                     IdlSeed::Account(seed_account) => {
-                        seed_exprs.push(format!("{}.key().as_ref()", seed_account.path));
+                        let account_var = seed_account.path.split('.').next().unwrap();
+                        seed_exprs.push(format!("{}.key().as_ref()", account_var));
                     }
                 }
             }
@@ -224,8 +232,6 @@ pub fn generate_instruction_function(ix: &IdlInstruction, program_name: &str) ->
     format!(
         r#"
 fn {function_name}() {{
-    println!("Calling {ix_name}...");
-
     {bindings}
 
     let mut accounts = {struct_name} {{
@@ -243,12 +249,11 @@ fn {function_name}() {{
         &account_infos,
         bumps
     );
-
     {args}
 
     match {ix_name}({call_args}) {{
-        Ok(_) => println!("✅ {ix_name} succeeded"),
-        Err(e) => eprintln!("❌ {ix_name} failed: {{:?}}", e),
+        Ok(_) => println!("{ix_name} succeeded"),
+        Err(e) => eprintln!("{ix_name} failed: {{:?}}", e),
     }}
 }}
     "#,

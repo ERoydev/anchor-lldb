@@ -1,182 +1,96 @@
 use clap::{Parser, Subcommand};
 
+use crate::utils::infer_paths;
+
 mod generate;
 mod utils;
 
 // https://www.shuttle.dev/blog/2023/12/08/clap-rust
 
 #[derive(Parser)]
-#[command(name = "solana-anchor-debuggen", about = "Generate native Rust debug harnesses for Anchor programs")]
-struct Cli {
+#[command(author, version, about)]
+pub struct Args {
     #[command(subcommand)]
-    command: Commands,
+    pub command: Command,
 }
 
 #[derive(Subcommand)]
-enum Commands {
-    /// Generate native Rust wrapper from IDL
+pub enum Command {
+    /// Generates a debug wrapper from Anchor IDL
+    // Generate {
+    //     #[arg(long)]
+    //     idl: Option<String>,
+    //     #[arg(long)]
+    //     program_crate_path: Option<String>,
+    //     #[arg(long)]
+    //     out: Option<String>,
+    // },
     Generate {
         #[arg(long)]
-        idl: String,
-
+        package: String,
         #[arg(long)]
-        program_crate_path: String,
-
-        #[arg(long, default_value = "debug_wrapper")]
-        out: String,
-    },
+        idl: Option<String>,
+        #[arg(long)]
+        program_crate_path: Option<String>,
+        out: Option<String>
+    }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let cli = Cli::parse();
+    let args = Args::parse();
 
-    match cli.command {
-        Commands::Generate {
-            idl,
-            program_crate_path,
-            out,
-        } => {
-            generate::generate_wrapper(&idl, &program_crate_path, &out)?;
+    match args.command {
+        Command::Generate { package, idl, program_crate_path, out } => {
+
+            let (idl_path, program_crate_path) = match (&idl, &program_crate_path) {
+                (Some(idl), Some(crate_path)) => (idl.clone(), crate_path.clone()),
+                _ => utils::infer_paths(&package)?,
+            };
+
+            let out_path = out.unwrap_or_else(|| "debug-wrapper".to_string());
+            generate::generate_wrapper(&idl_path, &program_crate_path, &out_path, &package)?;
         }
     }
 
     Ok(())
 }
 
-
-// Bellow is the mocked version that i've got working !
-
-// use std::collections::BTreeMap;
-
-// use anchor_lang::prelude::*;
-// use anchor_lang::Bump;
-// use shipment_manager::shipment_manager::initialize_counter;
-// use shipment_manager::InitializeCounter;
-// use shipment_manager::InitializeCounterBumps;
-// use shipment_manager::ID as PROGRAM_ID;
-
-// mod mocks;
-
-// use mocks::*;
-
-// fn main() {
-//     println!("Native debug wrapper for Anchor program: 'shipment_manager'");
-//     call_accept_shipment();
-//     call_create_shipment();
-//     call_initialize_counter();
-//     call_refuse_shipment();
-//     call_validate_shipment();
+// #[derive(Parser)]
+// #[command(name = "solana-anchor-debuggen", about = "Generate native Rust debug harnesses for Anchor programs")]
+// struct Cli {
+//     #[command(subcommand)]
+//     command: Commands,
 // }
 
+// #[derive(Subcommand)]
+// enum Commands {
+//     /// Generate native Rust wrapper from IDL
+//     Generate {
+//         #[arg(long)]
+//         idl: String,
 
-// fn call_accept_shipment() {
-//     println!("Calling accept_shipment...");
-//     // TODO: Mock accounts and context
-//     // let ctx = ...;
+//         #[arg(long)]
+//         program_crate_path: String,
 
-//     // shipment_manager::program::shipment_manager::accept_shipment(ctx).unwrap();
+//         #[arg(long, default_value = "debug_wrapper")]
+//         out: String,
+//     },
 // }
 
-// fn call_create_shipment() {
-//     println!("Calling create_shipment...");
-//     // TODO: Mock accounts and context
-//     // let ctx = ...;
-//     // shipment_manager::program::shipment_manager::create_shipment(ctx).unwrap();
-// }
+// fn main() -> Result<(), Box<dyn std::error::Error>> {
+//     let cli = Cli::parse();
 
-
-// fn call_initialize_counter() {
-//     println!("Calling initialize_counter...");
-
-//     let signer = Box::leak(Box::new(mock_signer_account("signer")));
-
-//     // PDA: [b"counter"]
-//     let (pda, bump) = Pubkey::find_program_address(&[b"counter"], &PROGRAM_ID);
-//     let counter = Box::leak(Box::new(mock_pda_account(&[b"counter"], &PROGRAM_ID, 64)));
-
-//     let system_program = Box::leak(Box::new(mock_system_program()));
-
-//     // Build account struct
-//     let mut accounts = InitializeCounter {
-//         counter: Account::try_from(counter).unwrap(),
-//         signer: Signer::try_from(signer).unwrap(),
-//         system_program: Program::try_from(&*system_program).expect("REQUIRED")
-//     };
-
-//     let account_infos = vec![counter.clone(), signer.clone(), system_program.clone()];
-
-//     let bumps = InitializeCounterBumps { counter: 2 };
-
-//     println!("{:?}", bumps);
-
-//     // // Construct context with bumps
-//     let ctx = Context::new(
-//         &PROGRAM_ID, 
-//         &mut accounts, 
-//         &account_infos, 
-//         bumps
-//     );
-
-//     // Run the instruction
-//     match initialize_counter(ctx) {
-//         Ok(_) => println!("✅ initialize_counter succeeded"),
-//         Err(e) => eprintln!("❌ initialize_counter failed: {:?}", e),
+//     match cli.command {
+//         Commands::Generate {
+//             idl,
+//             program_crate_path,
+//             out,
+//         } => {
+//             generate::generate_wrapper(&idl, &program_crate_path, &out)?;
+//         }
 //     }
-// }
 
-// fn call_refuse_shipment() {
-//     println!("Calling refuse_shipment...");
-//     // TODO: Mock accounts and context
-//     // let ctx = ...;
-//     // shipment_manager::program::shipment_manager::refuse_shipment(ctx).unwrap();
-// }
-
-// fn call_validate_shipment() {
-//     println!("Calling validate_shipment...");
-//     // TODO: Mock accounts and context
-//     // let ctx = ...;
-//     // shipment_manager::program::shipment_manager::validate_shipment(ctx).unwrap();
+//     Ok(())
 // }
 
 
-/*
-
-Example usage when i debug that shit
-
-(lldb) fr v ctx
-    (anchor_lang::context::Context<shipment_manager::InitializeCounter>) ctx = {
-    program_id = 0x0000000100054fd4
-    accounts = 0x000000016fdfe2e0
-    remaining_accounts = {
-        data_ptr = 0x0000000126e055f0
-        length = 3
-    }
-    bumps = (counter = '\x02')
-    }
-
-(lldb) p ctx.accounts
-    (shipment_manager::InitializeCounter *) 0x000000016fdfe2e0
-
-(lldb) p *ctx.accounts
-    (shipment_manager::InitializeCounter) {
-        counter = {
-            account = (count = 0)
-            info = 0x0000000126e06150
-        }
-
-        signer = {
-            info = 0x0000000126e05ea0
-        }
-
-        system_program = {
-            info = 0x0000000126e05f70
-            _phantom = {}
-        }
-    }
-
-(lldb) p (*ctx.accounts).counter
-    (anchor_lang::accounts::account::Account<shipment_manager::ShipmentIdCounter>) {
-        account = (count = 0)
-        info = 0x0000000126e06150
-    }
-*/
