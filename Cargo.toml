@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 description = "A CLI tool to generate a standalone Rust crate to simulate and debug program instructions writte on Anchor Solana framework. Creates a binary executable that can be debugged with lldb."
-license = "UNLICENSED"
+license-file = "LICENSE"
 
 authors = ["Emil Roydev"]
 readme = "README.md"
