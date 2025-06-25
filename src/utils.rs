@@ -1,8 +1,6 @@
 use std::{fs, path::Path};
-use anchor_idl::{Idl, IdlInstructionAccount, IdlInstructionAccountItem};
+use anchor_idl::{IdlInstructionAccount, IdlInstructionAccountItem};
 use regex::Regex;
-use toml::Value;
-
 
 pub fn to_camel_case(s: &str) -> String {
     s.split('_')
@@ -15,19 +13,6 @@ pub fn to_camel_case(s: &str) -> String {
             }
         })
         .collect::<String>()
-}
-
-// let program_name = idl
-//     .metadata
-//     .as_ref()
-//     .and_then(|meta| meta.get("name"))
-//     .and_then(|val| val.as_str())
-//     .unwrap_or("unnamed_program");
-
-pub fn load_idl(idl_path: &str) -> Result<Idl, Box<dyn std::error::Error>> {
-    let idl_json = fs::read_to_string(idl_path).expect("failed to read IDL file");
-    let idl: Idl = serde_json::from_str(&idl_json).expect("Failed to parseIDL");
-    Ok(idl)
 }
 
 
@@ -83,8 +68,6 @@ pub fn extract_program_mod_name(lib_rs_path: &Path) -> Result<String, Box<dyn st
     
     Ok(captures[1].to_string())
 }
-
-use serde::Deserialize;
 
 
 // TODO: This can lead to bugs because Account name can be ShipmentIdCounter and this will result in Shipmentidcounter
