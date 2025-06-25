@@ -2,6 +2,7 @@ use anchor_idl::Idl;
 use clap::{Parser, Subcommand};
 use std::fs;
 mod generate;
+pub mod generator;
 pub mod scripts;
 mod utils;
 
