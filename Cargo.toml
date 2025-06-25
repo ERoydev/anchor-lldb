@@ -9,7 +9,7 @@ license-file = "LICENSE"
 authors = ["Emil Roydev"]
 readme = "README.md"
 repository = "https://github.com/ERoydev/anchor-lldb"
-keywords = ["solana", "anchor", "lldb", "debugging", "cli", "rust", "crate", "program", "instructions"]
+keywords = ["solana", "anchor", "lldb", "debugging", "cli"]
 categories = ["development-tools", "command-line-utilities", "debugging"]
 
 [dependencies]
