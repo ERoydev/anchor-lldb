@@ -1,6 +1,6 @@
-use std::{fs, path::Path};
 use anchor_idl::{IdlInstructionAccount, IdlInstructionAccountItem};
 use regex::Regex;
+use std::{fs, path::Path};
 
 pub fn to_camel_case(s: &str) -> String {
     s.split('_')
@@ -14,7 +14,6 @@ pub fn to_camel_case(s: &str) -> String {
         })
         .collect::<String>()
 }
-
 
 pub fn visit_account_item(item: &IdlInstructionAccountItem) -> Option<&IdlInstructionAccount> {
     match item {
@@ -30,7 +29,6 @@ pub fn visit_account_item(item: &IdlInstructionAccountItem) -> Option<&IdlInstru
         }
     }
 }
-
 
 // Used to derive tha paths when using `anchor-lldb generate` instead of user passing the paths manually
 pub fn infer_paths(package: &str) -> Result<(String, String), Box<dyn std::error::Error>> {
@@ -59,22 +57,13 @@ pub fn infer_paths(package: &str) -> Result<(String, String), Box<dyn std::error
 
 pub fn extract_program_mod_name(lib_rs_path: &Path) -> Result<String, Box<dyn std::error::Error>> {
     let contents = fs::read_to_string(lib_rs_path)?;
-    
+
     // Match #[program] followed by pub mod <name>
     let re = Regex::new(r#"(?m)#\s*\[program\]\s*pub\s+mod\s+([a-zA-Z_][a-zA-Z0-9_]*)"#)?;
-    
-    let captures = re.captures(&contents)
+
+    let captures = re
+        .captures(&contents)
         .ok_or("❌ Could not find #[program] pub mod <name> in lib.rs")?;
-    
+
     Ok(captures[1].to_string())
-}
-
-
-// TODO: This can lead to bugs because Account name can be ShipmentIdCounter and this will result in Shipmentidcounter
-pub fn capitalize_first_letter(s: &str) -> String {
-    let mut c = s.chars();
-    match c.next() {
-        None => String::new(),
-        Some(first) => first.to_uppercase().collect::<String>() + c.as_str(),
-    }
 }

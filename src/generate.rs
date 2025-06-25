@@ -1,12 +1,13 @@
+use std::collections::HashMap;
 use std::env;
 use std::fs::{self, File};
-use std::io::{Write};
+use std::hash::Hash;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
+use crate::scripts::extract_account_struct_map::extract_account_struct_map;
+use crate::utils::{to_camel_case, visit_account_item};
 use anchor_idl::{Idl, IdlInstruction, IdlInstructionAccount, IdlSeed, IdlType};
-
-use crate::utils::{capitalize_first_letter, to_camel_case, visit_account_item};
-
 /*
 
 Command to generate that project:
@@ -15,7 +16,7 @@ Command to generate that project:
     --program-crate-path /Users/emilemilovroydev/Rust/projects/Solana/shipment-managment --out /Users/emilemilovroydev/Rust/projects/Solana/shipment-managment/debug-wrapper
 
 
-    Usage using the extension be like 
+    Usage using the extension be like
         - cargo run install --path . => TO install globbally this CLI tool
 
         - anchor-lldb generate --package={packageName}
@@ -26,15 +27,27 @@ struct GeneratorConfig<'a> {
     pub out_dir: PathBuf,
     pub src_dir: PathBuf,
     pub package_name: &'a str,
+    account_map: HashMap<String, String>, // account name -> Account struct name -> Used to derive `DISCRIMINATOR` later when constructing `mock_pda`
 }
 
 impl<'a> GeneratorConfig<'a> {
-    pub fn new(crate_path: &'a str, out_dir: PathBuf, src_dir: PathBuf, package_name: &'a str) -> Self {
-        GeneratorConfig { 
-            program_path: crate_path, 
+    pub fn new(
+        crate_path: &'a str,
+        out_dir: PathBuf,
+        src_dir: PathBuf,
+        package_name: &'a str,
+    ) -> Self {
+        let crate_src_dir = Path::new(crate_path).join("src");
+        let map = extract_account_struct_map(&crate_src_dir)
+            .expect("Failed to extract account structs from source directory. Maybe you have defined your account structs somewhere else ?");
+
+        GeneratorConfig {
+            program_path: crate_path,
             out_dir,
             src_dir,
-            package_name: package_name }
+            package_name: package_name,
+            account_map: map,
+        }
     }
 }
 
@@ -45,8 +58,12 @@ struct CodeGenerator<'a> {
 }
 
 impl<'a> CodeGenerator<'a> {
-    pub fn new(idl: &'a Idl, crate_path: &'a str, out_dir: PathBuf, package: &'a str) -> CodeGenerator<'a> {
-
+    pub fn new(
+        idl: &'a Idl,
+        crate_path: &'a str,
+        out_dir: PathBuf,
+        package: &'a str,
+    ) -> CodeGenerator<'a> {
         let program_name = idl.metadata.name.clone();
         let crate_name = program_name.replace("-", "_");
 
@@ -58,15 +75,16 @@ impl<'a> CodeGenerator<'a> {
         CodeGenerator {
             idl,
             config,
-            crate_name
+            crate_name,
         }
     }
 
     pub fn generate_mock_rs(&self) -> Result<(), Box<dyn std::error::Error>> {
         // === Write mock.rs stub ===
         let mut mock_rs = File::create(self.config.src_dir.join("mock.rs"))?; //TODO: Fix that
-        
-        let template_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/templates/mock_template.rs");
+
+        let template_path =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("src/templates/mock_template.rs");
         let mut template = fs::read_to_string(template_path).expect("Failed to read a string");
 
         template = template.replace("{crate_name}", &self.crate_name);
@@ -74,7 +92,7 @@ impl<'a> CodeGenerator<'a> {
         let mock_rs_contents = format!(
             r#"use {crate_name}::{{ID as PROGRAM_ID}};
         "#,
-        crate_name = &self.crate_name
+            crate_name = &self.crate_name
         );
 
         let full_contents = format!("{}{}", mock_rs_contents, template);
@@ -95,9 +113,9 @@ impl<'a> CodeGenerator<'a> {
     {crate_name} = {{ path = "{program_path}", package = "{package_name}" }}
     anchor-lang = "0.31.1"
     "#,
-    crate_name = &self.crate_name,
-    program_path = &self.config.program_path,
-    package_name = self.config.package_name
+            crate_name = &self.crate_name,
+            program_path = &self.config.program_path,
+            package_name = self.config.package_name
         );
 
         match fs::write(&self.config.out_dir.join("Cargo.toml"), cargo_toml) {
@@ -109,7 +127,7 @@ impl<'a> CodeGenerator<'a> {
     }
 
     pub fn generate_main_rs(&self) -> Result<(), Box<dyn std::error::Error>> {
-            // === Write main.rs stub ===
+        // === Write main.rs stub ===
         let mut main_rs = File::create(&self.config.src_dir.join("main.rs"))?;
 
         let mut call_functions = String::new();
@@ -119,12 +137,12 @@ impl<'a> CodeGenerator<'a> {
             let func_name = format!("call_{}", instruction.name);
             let call = format!("    {}();\n", func_name);
             call_main.push_str(&call);
-            let func = generate_instruction_function(instruction);
+            let func = generate_instruction_function(instruction, &self.config.account_map);
 
             call_functions.push_str(&func);
         }
 
-    // 
+        //
 
         let main_rs_contents = format!(
             r#"use anchor_lang::prelude::*;
@@ -155,38 +173,42 @@ impl<'a> CodeGenerator<'a> {
     }
 }
 
-
 struct InstructionAcountCode {
     bindings: Vec<String>,
     fields: Vec<String>,
-    account_infos: Vec<String>
+    account_infos: Vec<String>,
 }
 
 impl InstructionAcountCode {
-    pub fn generate_account_code(ix: &IdlInstruction) -> InstructionAcountCode {
+    pub fn generate_account_code(
+        ix: &IdlInstruction,
+        account_map: &HashMap<String, String>,
+    ) -> InstructionAcountCode {
         let mut bindings = vec![];
         let mut fields = vec![];
         let mut accounts_info_clones = vec![];
 
         for acc in &ix.accounts {
-            let account: &IdlInstructionAccount = visit_account_item(acc).expect("Failed te retreive accounts");
+            let account: &IdlInstructionAccount =
+                visit_account_item(acc).expect("Failed te retrieve accounts");
             let acc_name: &String = &account.name;
-            let acc_struct_name = capitalize_first_letter(&acc_name);
 
             let mock_call: String = if acc_name.to_lowercase() == "system_program" {
                 format!(r#"Box::leak(Box::new(mock_system_program()))"#)
             } else if account.signer {
                 format!(r#"Box::leak(Box::new(mock_signer_account("{acc_name}")))"#)
             } else {
-                // TODO: Generation of PDA should be handled better than this !
+                let struct_name = account_map.get(acc_name)
+                    .expect("Account struct name not found, maybe you don't have it in lib.rs and anchor-lldb cannot use it to derive account discriminator.");
                 format!(
-                    r#"Box::leak(Box::new(mock_pda_account::<{acc_struct_name}>(&[b"{acc_name}"], &PROGRAM_ID, 64)))"#
+                    r#"Box::leak(Box::new(mock_pda_account::<{}>(&[b"{acc_name}"], &PROGRAM_ID, 64)))"#,
+                    struct_name
                 )
             };
 
             bindings.push(format!("let {acc_name} = {mock_call};"));
 
-            let account_type =  if account.signer {
+            let account_type = if account.signer {
                 "Signer"
             } else if acc_name.to_lowercase() == "system_program" {
                 "Program"
@@ -207,15 +229,18 @@ impl InstructionAcountCode {
             accounts_info_clones.push(format!("{acc_name}.clone()"));
         }
 
-        InstructionAcountCode { bindings, fields, account_infos: accounts_info_clones }
-
+        InstructionAcountCode {
+            bindings,
+            fields,
+            account_infos: accounts_info_clones,
+        }
     }
 }
 
 struct InstructionArgCode {
     args: Vec<String>,
     call_args: Vec<String>,
-} 
+}
 
 impl InstructionArgCode {
     pub fn generate_argument_code(ix: &IdlInstruction) -> InstructionArgCode {
@@ -232,7 +257,10 @@ impl InstructionArgCode {
                 IdlType::String => r#""test".to_string()"#.to_string(),
                 IdlType::Pubkey => "Pubkey::new_unique()".to_string(),
                 IdlType::Array(_, n) => format!("[0u8; {:?}]", n),
-                _ => format!("/* unsupported arg type: {:?} */ Default::default()", arg.ty),
+                _ => format!(
+                    "/* unsupported arg type: {:?} */ Default::default()",
+                    arg.ty
+                ),
             };
 
             args.push(format!("let {arg_name} = {dummy};"));
@@ -264,10 +292,10 @@ impl InstructionBumpsCode {
                     match seed {
                         IdlSeed::Const(seed_const) => {
                             seed_exprs.push(format!("&{:?}", seed_const.value));
-                        },
+                        }
                         IdlSeed::Arg(seed_arg) => {
                             seed_exprs.push(format!("&{}::to_le_bytes()", seed_arg.path));
-                        },
+                        }
                         IdlSeed::Account(seed_account) => {
                             let account_var = seed_account.path.split('.').next().unwrap();
                             seed_exprs.push(format!("{}.key().as_ref()", account_var));
@@ -283,7 +311,6 @@ impl InstructionBumpsCode {
         }
 
         InstructionBumpsCode { bump_fields }
-
     }
 }
 
@@ -291,9 +318,8 @@ pub fn generate_wrapper(
     idl: &Idl,
     crate_path: &str,
     out_path: &str,
-    package: &str
+    package: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    
     let out_dir = Path::new(out_path).to_owned();
     let code_generator = CodeGenerator::new(&idl, &crate_path, out_dir, &package);
 
@@ -304,17 +330,19 @@ pub fn generate_wrapper(
     Ok(())
 }
 
-
-pub fn generate_instruction_function(ix: &IdlInstruction) -> String {
+pub fn generate_instruction_function(
+    ix: &IdlInstruction,
+    account_map: &HashMap<String, String>,
+) -> String {
     let ix_name = &ix.name;
     let function_name = format!("call_{}", ix_name);
     let struct_name = to_camel_case(&ix.name);
     let bump_struct = format!("{}Bumps", struct_name);
 
-    let instruction_account = InstructionAcountCode::generate_account_code(ix);
+    let instruction_account = InstructionAcountCode::generate_account_code(ix, account_map);
     let instuction_args = InstructionArgCode::generate_argument_code(ix);
     let instruction_bumps = InstructionBumpsCode::generate_bumps_code(ix);
-    
+
     // === Compose final Rust code ===
     format!(
         r#"
@@ -353,5 +381,4 @@ fn {function_name}() {{
         call_args = instuction_args.call_args.join(", "),
         bump_fields = instruction_bumps.bump_fields.join(",\n     "),
     )
-
 }
