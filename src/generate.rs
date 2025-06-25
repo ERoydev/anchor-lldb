@@ -5,7 +5,7 @@ use std::path::Path;
 
 use anchor_idl::{Idl, IdlInstruction, IdlInstructionAccount, IdlSeed, IdlType};
 
-use crate::utils::{capitalize_first_letter, read_package_name, to_camel_case, visit_account_item};
+use crate::utils::{capitalize_first_letter, to_camel_case, visit_account_item};
 
 /*
 
@@ -53,7 +53,7 @@ pub fn generate_wrapper(
 
     fs::create_dir_all(&src_dir)?;
 
-    let program_path = Path::new(crate_path).join("programs/shipment-managment");
+    let program_path = Path::new(crate_path);
     let package_name = package;
 
     // === Write Cargo.toml ===
@@ -83,14 +83,13 @@ program_path = program_path.to_str().expect("Failed to get program path")
     template = template.replace("{crate_name}", &crate_name);
 
     let mock_rs_contents = format!(
-        r#"use anchor_lang::prelude::*;
-use {crate_name}::{{ID as PROGRAM_ID}};
-
-
+        r#"use {crate_name}::{{ID as PROGRAM_ID}};
     "#
     );
 
-    mock_rs.write_all(template.as_bytes())?;
+    let full_contents = format!("{}{}", mock_rs_contents, template);
+
+    mock_rs.write_all(full_contents.as_bytes())?;
 
     // === Write main.rs stub ===
     let mut main_rs = File::create(src_dir.join("main.rs"))?;

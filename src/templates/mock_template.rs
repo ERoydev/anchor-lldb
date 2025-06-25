@@ -1,6 +1,5 @@
 
 use anchor_lang::prelude::*;
-use shipment_manager::{ ID as PROGRAM_ID};
 use anchor_lang::Discriminator;
 
 /*

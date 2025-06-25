@@ -86,21 +86,6 @@ pub fn extract_program_mod_name(lib_rs_path: &Path) -> Result<String, Box<dyn st
 
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
-struct CargoToml {
-    package: Package,
-}
-
-#[derive(Debug, Deserialize)]
-struct Package {
-    name: String,
-}
-
-pub fn read_package_name(path: &Path) -> Result<String, Box<dyn std::error::Error>> {
-    let toml_content = fs::read_to_string(path)?;
-    let cargo_toml: CargoToml = toml::from_str(&toml_content)?;
-    Ok(cargo_toml.package.name)
-}
 
 // TODO: This can lead to bugs because Account name can be ShipmentIdCounter and this will result in Shipmentidcounter
 pub fn capitalize_first_letter(s: &str) -> String {
