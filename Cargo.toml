@@ -10,7 +10,7 @@ authors = ["Emil Roydev"]
 readme = "README.md"
 repository = "https://github.com/ERoydev/anchor-lldb"
 keywords = ["solana", "anchor", "lldb", "debugging", "cli"]
-categories = ["development-tools", "command-line-utilities", "debugging"]
+categories = ["development-tools", "command-line-utilities"]
 
 [dependencies]
 anchor-idl = "0.4.1"
