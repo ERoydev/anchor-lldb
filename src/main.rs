@@ -1,10 +1,14 @@
 use anchor_idl::Idl;
 use clap::{Parser, Subcommand};
-use std::fs;
+use std::{fs};
+
+use crate::utils::{cli_error, inject_workspace_member};
 mod generate;
 pub mod generator;
 pub mod scripts;
 mod utils;
+
+const DEFAULT_OUT_PATH: &str = "debug-wrapper";
 
 #[derive(Parser)]
 #[command(author, version, about)]
@@ -53,16 +57,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 _ => utils::infer_paths(&package)?,
             };
 
-            let idl_json = fs::read_to_string(idl_path).expect("failed to read IDL file");
-            let idl: Idl = serde_json::from_str(&idl_json).expect("Failed to parseIDL");
+            let idl_json = fs::read_to_string(&idl_path)
+                .map_err(|e| format!("Failed to read IDL file at {}: {}", idl_path, e))?;
 
-            let out_path = out.unwrap_or_else(|| "debug-wrapper".to_string());
+            let idl: Idl = serde_json::from_str(&idl_json)
+                .map_err(|e| format!("Failed to parse IDL JSON at {}: {}", idl_path, e))?;
 
-            if let Err(e) =
-                generate::generate_wrapper(&idl, &program_crate_path, &out_path, &package)
-            {
-                eprint!("anchor-lldb Error: {}", e);
-                std::process::exit(1);
+            let out_path = out.unwrap_or_else(|| DEFAULT_OUT_PATH.to_string());
+
+            let root_dir = std::env::current_dir()?;
+            let root_cargo = root_dir.join("Cargo.toml");
+
+            if let Err(e) = inject_workspace_member(&root_cargo, &out_path) {
+                cli_error(e);
+            }
+
+            if let Err(e) = generate::generate_wrapper(&idl, &program_crate_path, &out_path, &package) {
+                cli_error(e);
             }
         }
     }

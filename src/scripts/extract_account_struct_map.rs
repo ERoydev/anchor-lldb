@@ -4,15 +4,6 @@ use walkdir::WalkDir;
 
 use syn::{Attribute, Fields, File, Item, ItemStruct, PathArguments, Type, TypePath};
 
-/*
-- If the user keeps all their account structs and instruction context structs (i.e. the ones with #[derive(Accounts)]) in their lib.rs
-    (or in files that are mod-declared from lib.rs), then:
-    - The parser will successfully walk through everything and extract all the correct struct names automatically.
-
-Note: Still not tested if Account Structs are separated in another folders
-// TODO: Inspect the noted issue
-*/
-
 fn has_derive_accounts_attr(attrs: &[Attribute]) -> bool {
     for attr in attrs {
         if attr.path().is_ident("derive") {

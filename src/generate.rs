@@ -91,3 +91,4 @@ fn {function_name}() {{
         bump_fields = instruction_bumps.bump_fields.join(",\n     "),
     )
 }
+

@@ -1,7 +1,9 @@
 use anchor_idl::{IdlInstructionAccount, IdlInstructionAccountItem};
 use regex::Regex;
+use toml_edit::{DocumentMut, Item, Value};
 use std::{fs, path::Path};
 
+// Just format util fn
 pub fn to_camel_case(s: &str) -> String {
     s.split('_')
         .filter(|part| !part.is_empty())
@@ -15,6 +17,7 @@ pub fn to_camel_case(s: &str) -> String {
         .collect::<String>()
 }
 
+// Used to extract the Single account recursively 
 pub fn visit_account_item(item: &IdlInstructionAccountItem) -> Option<&IdlInstructionAccount> {
     match item {
         IdlInstructionAccountItem::Single(account) => Some(account),
@@ -63,7 +66,31 @@ pub fn extract_program_mod_name(lib_rs_path: &Path) -> Result<String, Box<dyn st
 
     let captures = re
         .captures(&contents)
-        .ok_or("❌ Could not find #[program] pub mod <name> in lib.rs")?;
+        .ok_or("Could not find #[program] pub mod <name> in lib.rs")?;
 
     Ok(captures[1].to_string())
+}
+
+// Add the crate inside the root cargo Toml 
+pub fn inject_workspace_member(cargo_toml: &Path, member: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let content = fs::read_to_string(cargo_toml)?;
+    let mut doc = content.parse::<DocumentMut>()?;
+
+    let members = doc["workspace"]["members"]
+        .or_insert(Item::Value(Value::Array(Default::default())))
+        .as_array_mut()
+        .ok_or("`workspace.members` is not an array")?;
+
+    let already_present = members.iter().any(|v| v.as_str() == Some(member));
+
+    if !already_present {
+        members.push(member);
+        fs::write(cargo_toml, doc.to_string())?;
+    } 
+    Ok(())
+}
+
+pub fn cli_error<E: std::fmt::Display>(e: E) -> ! {
+    eprintln!("anchor-lldb Error: {}", e);
+    std::process::exit(1);
 }

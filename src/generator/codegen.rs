@@ -6,6 +6,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
+/*
+This is the main logic responsible to generate all the files and code inside them.
+*/
+
 pub struct CodeGenerator<'a> {
     pub idl: &'a Idl,
     pub config: GeneratorConfig<'a>,
