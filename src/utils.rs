@@ -94,3 +94,9 @@ pub fn cli_error<E: std::fmt::Display>(e: E) -> ! {
     eprintln!("anchor-lldb Error: {}", e);
     std::process::exit(1);
 }
+
+/// Converts a Cargo package name into the expected binary name.
+/// Replaces '-' with '_', just like Cargo does internally.
+pub fn binary_name_from_package(package: &str) -> String {
+    package.replace("-", "_")
+}

@@ -1,7 +1,7 @@
 use anchor_idl::{Idl, IdlInstruction};
 
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::generator::accounts::InstructionAcountCode;
 use crate::generator::args::InstructionArgCode;
@@ -26,7 +26,7 @@ Command to generate that project:
 pub fn generate_wrapper(
     idl: &Idl,
     crate_path: &str,
-    out_path: &str,
+    out_path: &PathBuf,
     package: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let out_dir = Path::new(out_path).to_owned();

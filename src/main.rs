@@ -1,14 +1,14 @@
 use anchor_idl::Idl;
 use clap::{Parser, Subcommand};
-use std::{fs};
+use tempfile::tempdir;
+use std::{fs, path::PathBuf};
 
-use crate::utils::{cli_error, inject_workspace_member};
+use crate::{temp_crate_builder::{build_and_extract_binary, maybe_inject_workspace, prepare_output_path}, utils::{binary_name_from_package, cli_error, inject_workspace_member}};
 mod generate;
 pub mod generator;
 pub mod scripts;
 mod utils;
-
-const DEFAULT_OUT_PATH: &str = "debug-wrapper";
+mod temp_crate_builder;
 
 #[derive(Parser)]
 #[command(author, version, about)]
@@ -42,6 +42,7 @@ pub enum Command {
     },
 }
 
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
@@ -63,17 +64,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let idl: Idl = serde_json::from_str(&idl_json)
                 .map_err(|e| format!("Failed to parse IDL JSON at {}: {}", idl_path, e))?;
 
-            let out_path = out.unwrap_or_else(|| DEFAULT_OUT_PATH.to_string());
+            // determine the output path: either user-specified or a temporary one
+            let (out_path, is_ephemeral, _temp_guard) = prepare_output_path(&out)?;
 
-            let root_dir = std::env::current_dir()?;
-            let root_cargo = root_dir.join("Cargo.toml");
+            // Inject debug-wrapper into root cargo workspace if not ephemeral
+            maybe_inject_workspace(&out_path, is_ephemeral);
 
-            if let Err(e) = inject_workspace_member(&root_cargo, &out_path) {
+            // Generate the debug wrapper crate files
+            if let Err(e) = generate::generate_wrapper(&idl, &program_crate_path, &out_path, &package) {
                 cli_error(e);
             }
 
-            if let Err(e) = generate::generate_wrapper(&idl, &program_crate_path, &out_path, &package) {
-                cli_error(e);
+            // If using temp dir, build the binary, extract it, and optionally run it
+            if is_ephemeral {
+                build_and_extract_binary(&package, &out_path)?;
             }
         }
     }
