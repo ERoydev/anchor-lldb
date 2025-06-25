@@ -16,12 +16,24 @@ pub struct Args {
 #[derive(Subcommand)]
 pub enum Command {
     Generate {
-        #[arg(long)]
+        #[arg(long, help = "Package name of the Anchor program (required)")]
         package: String,
-        #[arg(long)]
+
+        #[arg(
+            long,
+            help = "Optional path to the generated IDL .json file. Inferred from --package if not provided."
+        )]
         idl: Option<String>,
-        #[arg(long)]
+
+        #[arg(
+            long,
+            help = "Optional path to the Anchor program crate root. Inferred from --package if not provided."
+        )]
         program_crate_path: Option<String>,
+
+        #[arg(
+            help = "Optional output directory for the generated wrapper (default: debug-wrapper)"
+        )]
         out: Option<String>,
     },
 }
@@ -45,6 +57,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let idl: Idl = serde_json::from_str(&idl_json).expect("Failed to parseIDL");
 
             let out_path = out.unwrap_or_else(|| "debug-wrapper".to_string());
+
             if let Err(e) =
                 generate::generate_wrapper(&idl, &program_crate_path, &out_path, &package)
             {
