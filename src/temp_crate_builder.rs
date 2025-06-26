@@ -51,9 +51,8 @@ pub fn build_and_extract_binary(
     let built_bin_path = PathBuf::from("target/debuggen/debug").join(&binary_name);
     let bin_out_path = std::env::current_dir()?.join("target/debug").join(package);
 
-
     std::fs::copy(&built_bin_path, &bin_out_path)?;
-    println!("\n[INFO] Debug binary successfully written to:\n  → {}\n", bin_out_path.display());
+    println!("\n[INFO] Debug binary successfully written to:\n -> {}\n::BIN_OUT::{}\n", bin_out_path.display(), bin_out_path.display());
 
     let run_status = std::process::Command::new(&bin_out_path).status()?;
 
