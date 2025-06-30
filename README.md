@@ -22,3 +22,13 @@
 ```bash
 anchor-lldb generate --package=<your_package_name_here> 
 ```
+# Anchor account debugging in LLDB
+1. View the pointer to the account
+```lldb
+p shipment
+```
+
+3. Dereference the pointer to see the actual struct fields
+```lldb
+p *shipment
+```
